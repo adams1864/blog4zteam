@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+        }
+        .header {
+            background-color: black;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header span {
+            color: red;
+        }
+        .container {
+            background-color: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .container input, .container textarea {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .container button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .container button:hover {
+            background-color: darkred;
+        }
+        .table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        .table th, .table td {
+            padding: 10px;
+            border: 1px solid #333;
+        }
+        .table th {
+            background-color: #333;
+        }
+        .table td {
+            background-color: #1a1a1a;
+        }
+        .table button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px; /* Add margin to create a gap between buttons */
+        }
+        .table button:last-child {
+            margin-right: 0; /* Remove margin from the last button */
+        }
+        .table button:hover {
+            background-color: darkred;
+        }
+        .delete-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: black;
+            color: #a855f7;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .delete-btn .icon {
+            stroke: #a855f7;
+        }
+        .delete-btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Blog Admin Panel <span>THE STRIVE</span></h2>
+    </div>
+    <div class="max-w-3xl mx-auto container">
+        <h3 class="text-3xl font-bold mb-4">Add New Blog Post</h3>
+        <form id="post-form" class="space-y-3" enctype="multipart/form-data">
+            <input type="text" id="title" name="title" placeholder="Title" required>
+            <textarea id="content" name="content" placeholder="Content" required></textarea>
+            <input type="text" id="author" name="author" placeholder="Author" required>
+            <div class="mb-4">
+                <label for="image" class="block text-gray-700">Image</label>
+                <input type="file" id="image" name="image" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+            </div>
+            <button type="submit" class="bg-black text-white px-4 py-2 rounded">Submit</button>
+        </form>
+    </div>
+    <div class="max-w-3xl mx-auto container">
+        <h3 class="text-3xl font-bold mb-4">Manage Posts</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="blogList">
+                <!-- Posts will be displayed here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let posts = []; // Define the posts variable
+
+        document.getElementById('post-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+
+            try {
+                console.log('Submitting form data:', formData); // Debugging step
+                const response = await fetch('http://localhost:2885/posts', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create post');
+                }
+
+                const result = await response.json();
+                console.log('Post created successfully:', result); // Debugging step
+                alert('Post created successfully');
+                event.target.reset();
+                fetchPosts(); // Fetch posts again to update the list
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to create post');
+            }
+        });
+
+        async function fetchPosts() {
+            try {
+                const response = await fetch('http://localhost:2885/posts');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch posts');
+                }
+                posts = await response.json(); // Update the posts variable
+                console.log('Fetched posts:', posts); // Debugging step
+                renderPosts(posts);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderPosts(posts) {
+            const blogList = document.getElementById('blogList');
+            blogList.innerHTML = '';
+            posts.forEach(post => {
+                blogList.innerHTML += `
+                    <tr>
+                        <td>${post.id}</td>
+                        <td>${post.title}</td>
+                        <td>${post.author}</td>
+                        <td>
+                            <button onclick="editPost(${post.id})">Edit</button>
+                            <button class="delete-btn" onclick="deletePost(${post.id})">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <path d="M10 11v6"></path>
+                                    <path d="M14 11v6"></path>
+                                    <path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"></path>
+                                </svg>
+                                <span>Delete</span>
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        async function deletePost(id) {
+            try {
+                const response = await fetch(`http://localhost:2885/posts/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete post');
+                }
+
+                alert('Post deleted successfully');
+                fetchPosts(); // Fetch posts again to update the list
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to delete post');
+            }
+        }
+
+        function editPost(id) {
+            const post = posts.find(post => post.id === id);
+            document.getElementById('title').value = post.title;
+            document.getElementById('content').value = post.content;
+            document.getElementById('author').value = post.author;
+        }
+
+        // Fetch posts when the page loads
+        document.addEventListener('DOMContentLoaded', fetchPosts);
+    </script>
+</body>
+</html>

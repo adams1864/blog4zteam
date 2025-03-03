@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog Post</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Merriweather', serif;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .post-title {
+      font-family: 'Lora', serif;
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .post-author {
+      font-size: 14px;
+      color: gray;
+      margin-bottom: 20px;
+    }
+    .post-content {
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .post-image {
+      width: 100%; /* Set the width of the image */
+      max-width: 400px; /* Set a maximum width for the image */
+      height: auto;
+      display: block;
+      margin: 0 auto 20px; /* Center the image and add bottom margin */
+    }
+    .comments-section {
+      margin-top: 40px;
+    }
+    .comment {
+      margin-bottom: 20px;
+    }
+    .comment-author {
+      font-weight: bold;
+    }
+    .comment-content {
+      margin-top: 5px;
+    }
+    .like-button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    .like-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="post-title" id="post-title"></h1>
+    <p class="post-author" id="post-author"></p>
+    <img src="" alt="" class="post-image" id="post-image">
+    <div class="post-content" id="post-content"></div>
+    <button class="like-button" id="like-button">Like (<span id="like-count">0</span>)</button>
+
+    <!-- Comments Section -->
+    <div class="comments-section">
+      <h3>Comments</h3>
+      <div id="comments-list"></div>
+      <textarea id="comment-author" placeholder="Your name" class="w-full p-2 bg-gray-200 text-black rounded mt-4"></textarea>
+      <textarea id="comment-content" placeholder="Add a comment..." class="w-full p-2 bg-gray-200 text-black rounded mt-2"></textarea>
+      <button id="submit-comment" class="bg-black text-white px-4 py-2 rounded mt-2">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    async function fetchPostDetails() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const postId = urlParams.get('id');
+
+      if (!postId) {
+        document.getElementById('post-title').innerText = 'Post not found';
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:2885/posts/${postId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch post details: ${response.statusText}`);
+        }
+        const post = await response.json();
+        console.log('Fetched post:', post); // Debugging step
+
+        document.getElementById('post-title').innerText = post.title;
+        document.getElementById('post-author').innerText = `By ${post.author}`;
+        document.getElementById('post-image').src = post.image;
+        document.getElementById('post-image').alt = post.title;
+        document.getElementById('post-content').innerText = post.content;
+        document.getElementById('like-count').innerText = post.likes;
+
+        // Fetch comments for the post
+        fetchComments(postId);
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('post-title').innerText = 'Failed to load post';
+        document.getElementById('post-content').innerText = error.message;
+      }
+    }
+
+    async function fetchComments(postId) {
+      try {
+        const response = await fetch(`http://localhost:2885/posts/${postId}/comments`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch comments');
+        }
+        const comments = await response.json();
+        const commentsList = document.getElementById('comments-list');
+        commentsList.innerHTML = '';
+        comments.forEach(comment => {
+          const commentElement = document.createElement('div');
+          commentElement.classList.add('comment');
+          commentElement.innerHTML = `
+            <div class="comment-author">${comment.author}</div>
+            <div class="comment-content">${comment.content}</div>
+          `;
+          commentsList.appendChild(commentElement);
+        });
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    document.getElementById('submit-comment').addEventListener('click', async () => {
+      const author = document.getElementById('comment-author').value;
+      const content = document.getElementById('comment-content').value;
+      const postId = new URLSearchParams(window.location.search).get('id');
+
+      if (author && content && postId) {
+        try {
+          const response = await fetch(`http://localhost:2885/posts/${postId}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ author, content })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to submit comment');
+          }
+
+          document.getElementById('comment-author').value = '';
+          document.getElementById('comment-content').value = '';
+          fetchComments(postId);
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      }
+    });
+
+    document.getElementById('like-button').addEventListener('click', async () => {
+      const postId = new URLSearchParams(window.location.search).get('id');
+
+      if (postId) {
+        try {
+          const response = await fetch(`http://localhost:2885/posts/${postId}/like`, {
+            method: 'POST'
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to like post');
+          }
+
+          const likeCountElement = document.getElementById('like-count');
+          likeCountElement.innerText = parseInt(likeCountElement.innerText) + 1;
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      }
+    });
+
+    // Fetch post details when the page loads
+    document.addEventListener('DOMContentLoaded', fetchPostDetails);
+  </script>
+</body>
+</html>

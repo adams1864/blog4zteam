@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Blog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .navbar {
+      background-color: black;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 50px;
+    }
+    .logo {
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .logo span {
+      color: red;
+    }
+    .nav-links {
+      display: flex;
+      list-style: none;
+    }
+    .nav-links li {
+      margin: 0 15px;
+    }
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+    .search-icon {
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .blog-post {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .blog-post img {
+      width: 100%;
+      height: auto;
+    }
+    .blog-post-content {
+      padding: 20px;
+    }
+    .blog-post-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .blog-post-author {
+      font-size: 14px;
+      color: gray;
+      margin-bottom: 20px;
+    }
+    .read-more {
+      display: inline-block;
+      margin-top: 10px;
+      color: red;
+      text-decoration: none;
+    }
+    .read-more:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">THE<span>STRIVE</span></div>
+    <ul class="nav-links">
+      <!-- Add navigation links here -->
+    </ul>
+    <div class="search-icon">&#128269;</div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="bg-black text-white py-20">
+    <div class="container mx-auto text-center">
+      <h1 class="text-5xl font-bold">Welcome to THE STRIVE Blog</h1>
+      <p class="mt-4">Your daily dose of amazing articles</p>
+    </div>
+  </header>
+
+  <!-- Search Bar -->
+  <section class="container mx-auto px-4 py-4">
+    <input type="text" id="search" placeholder="Search posts..." class="w-full p-2 bg-gray-200 text-black rounded">
+  </section>
+
+  <!-- Blog Posts Section -->
+  <section class="container mx-auto px-4 py-12">
+    <div id="blog-posts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <!-- Blog posts will be displayed here -->
+    </div>
+  </section>
+
+  <!-- Pagination Controls -->
+  <div id="pagination" class="flex justify-center mt-4">
+    <button id="prev-page" class="px-4 py-2 bg-gray-300 rounded mr-2">Previous</button>
+    <button id="next-page" class="px-4 py-2 bg-gray-300 rounded">Next</button>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-8">
+    <div class="container mx-auto text-center">
+      <p>&copy; 2025 THE STRIVE. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- JavaScript to Fetch and Display Blog Posts -->
+  <script>
+    let currentPage = 1;
+    const postsPerPage = 5;
+
+    async function fetchBlogPosts(query = '', page = 1) {
+      try {
+        const response = await fetch(`http://localhost:2885/posts`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+        let posts = await response.json();
+        console.log('Fetched posts:', posts); // Debugging step
+
+        if (query) {
+          posts = posts.filter(post => post.title.toLowerCase().includes(query.toLowerCase()) || post.content.toLowerCase().includes(query.toLowerCase()));
+        }
+
+        const start = (page - 1) * postsPerPage;
+        const end = start + postsPerPage;
+        const paginatedPosts = posts.slice(start, end);
+
+        displayBlogPosts(paginatedPosts);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    function displayBlogPosts(posts) {
+      const blogPostsContainer = document.getElementById('blog-posts');
+      blogPostsContainer.innerHTML = '';
+      posts.forEach(post => {
+        const postElement = document.createElement('div');
+        postElement.classList.add('blog-post');
+        postElement.innerHTML = `
+          <img src="${post.image}" alt="${post.title}">
+          <div class="blog-post-content">
+            <h2 class="blog-post-title">${post.title}</h2>
+            <p class="blog-post-author">By ${post.author}</p>
+            <p>${post.content.substring(0, 100)}...</p>
+            <a href="post.html?id=${post.id}" class="read-more">Read more</a>
+          </div>
+        `;
+        blogPostsContainer.appendChild(postElement);
+      });
+    }
+
+    // Fetch blog posts when the page loads
+    document.addEventListener('DOMContentLoaded', () => fetchBlogPosts());
+
+    // Add event listener to the search bar
+    document.getElementById('search').addEventListener('input', (event) => {
+      const query = event.target.value;
+      fetchBlogPosts(query, currentPage);
+    });
+
+    // Add event listeners for pagination buttons
+    document.getElementById('prev-page').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        fetchBlogPosts('', currentPage);
+      }
+    });
+
+    document.getElementById('next-page').addEventListener('click', () => {
+      currentPage++;
+      fetchBlogPosts('', currentPage);
+    });
+  </script>
+</body>
+</html>
